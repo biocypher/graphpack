@@ -1,0 +1,1229 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        
+        <style type="text/css">
+
+            #mynetwork {
+                width: 100%;
+                height: 800px;
+                background-color: #ffffff;
+                border: 1px solid lightgray;
+                position: relative;
+                float: left;
+            }
+
+            #loadingBar {
+                position:absolute;
+                top:0px;
+                left:0px;
+                width: 100%;
+                height: 100%;
+                background-color:rgba(200,200,200,0.8);
+                -webkit-transition: all 0.5s ease;
+                -moz-transition: all 0.5s ease;
+                -ms-transition: all 0.5s ease;
+                -o-transition: all 0.5s ease;
+                transition: all 0.5s ease;
+                opacity:1;
+            }
+
+            #bar {
+                position:absolute;
+                top:2px;
+                left:0px;
+                width:20px;
+                height:20px;
+                margin:auto auto auto auto;
+                border-radius:11px;
+                border:2px solid rgba(30,30,30,0.05);
+                background: rgb(0, 173, 246); /* Old browsers */
+                box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+            }
+
+            #border {
+                position:absolute;
+                top:2px;
+                left:10px;
+                width:500px;
+                height:23px;
+                margin:auto auto auto auto;
+                box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                border-radius:10px;
+            }
+
+            #text {
+                position:absolute;
+                top:-2px;
+                left:530px;
+                width:30px;
+                height:50px;
+                margin:auto auto auto auto;
+                font-size:22px;
+                color: #000000;
+            }
+
+            div.outerBorder {
+                position:relative;
+                top:400px;
+                width:600px;
+                height:44px;
+                margin:auto auto auto auto;
+                border:8px solid rgba(0,0,0,0.1);
+                background: rgb(252,252,252); /* Old browsers */
+                background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                border-radius:72px;
+                box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+            }
+
+            #physicsToggle {
+                position: absolute;
+                top: 175px;
+                right: 50px;
+                z-index: 999;
+                display: flex;
+                align-items: center; /* Ensures vertical alignment of text and switch */
+            }
+
+            .toggleText {
+                margin-right: 10px; /* Space between text and switch */
+                font-size: 14px; /* Adjust the font size as needed */
+                color: #000; /* Change color as needed */
+            }
+
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 40px;
+                height: 20px;
+            }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 20px;
+            }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 14px;
+                width: 14px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+
+            input:checked + .slider {
+                background-color: #2196F3;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(20px);
+            }
+
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="MAPK1">MAPK1</option>
+                                
+                                    <option value="MAP2K1">MAP2K1</option>
+                                
+                                    <option value="RPS6KA1">RPS6KA1</option>
+                                
+                                    <option value="MAP2K2">MAP2K2</option>
+                                
+                                    <option value="MKNK1">MKNK1</option>
+                                
+                                    <option value="PTPN7">PTPN7</option>
+                                
+                                    <option value="PEA15">PEA15</option>
+                                
+                                    <option value="TP53">TP53</option>
+                                
+                                    <option value="JUN">JUN</option>
+                                
+                                    <option value="PTPRR">PTPRR</option>
+                                
+                                    <option value="DUSP6">DUSP6</option>
+                                
+                                    <option value="DUSP1">DUSP1</option>
+                                
+                                    <option value="STAT3">STAT3</option>
+                                
+                                    <option value="MAPK14">MAPK14</option>
+                                
+                                    <option value="MAPK3">MAPK3</option>
+                                
+                                    <option value="ELK1">ELK1</option>
+                                
+                                    <option value="FOS">FOS</option>
+                                
+                                    <option value="ETS1">ETS1</option>
+                                
+                                    <option value="RPS6KA2">RPS6KA2</option>
+                                
+                                    <option value="RPS6KA3">RPS6KA3</option>
+                                
+                                    <option value="ARRB1">ARRB1</option>
+                                
+                                    <option value="KRAS">KRAS</option>
+                                
+                                    <option value="SFN">SFN</option>
+                                
+                                    <option value="EP300">EP300</option>
+                                
+                                    <option value="HIF1A">HIF1A</option>
+                                
+                                    <option value="HDAC1">HDAC1</option>
+                                
+                                    <option value="HSP90AA1">HSP90AA1</option>
+                                
+                                    <option value="ATM">ATM</option>
+                                
+                                    <option value="MDM4">MDM4</option>
+                                
+                                    <option value="CHEK2">CHEK2</option>
+                                
+                                    <option value="BCL2">BCL2</option>
+                                
+                                    <option value="BCL2L1">BCL2L1</option>
+                                
+                                    <option value="PPP1R13L">PPP1R13L</option>
+                                
+                                    <option value="DAXX">DAXX</option>
+                                
+                                    <option value="SIRT1">SIRT1</option>
+                                
+                                    <option value="BRCA1">BRCA1</option>
+                                
+                                    <option value="CDKN1A">CDKN1A</option>
+                                
+                                    <option value="TP53BP2">TP53BP2</option>
+                                
+                                    <option value="UBE3A">UBE3A</option>
+                                
+                                    <option value="USP7">USP7</option>
+                                
+                                    <option value="CREBBP">CREBBP</option>
+                                
+                                    <option value="MDM2">MDM2</option>
+                                
+                                    <option value="BAX">BAX</option>
+                                
+                                    <option value="NFKB1">NFKB1</option>
+                                
+                                    <option value="JAK1">JAK1</option>
+                                
+                                    <option value="JAK2">JAK2</option>
+                                
+                                    <option value="STAT1">STAT1</option>
+                                
+                                    <option value="PIAS3">PIAS3</option>
+                                
+                                    <option value="SRC">SRC</option>
+                                
+                                    <option value="EGFR">EGFR</option>
+                                
+                                    <option value="STAT5B">STAT5B</option>
+                                
+                                    <option value="JAK3">JAK3</option>
+                                
+                                    <option value="TYK2">TYK2</option>
+                                
+                                    <option value="STAT5A">STAT5A</option>
+                                
+                                    <option value="NANOG">NANOG</option>
+                                
+                                    <option value="SOCS3">SOCS3</option>
+                                
+                                    <option value="IL6R">IL6R</option>
+                                
+                                    <option value="CD274">CD274</option>
+                                
+                                    <option value="TGFB1">TGFB1</option>
+                                
+                                    <option value="DCN">DCN</option>
+                                
+                                    <option value="TGFBR1">TGFBR1</option>
+                                
+                                    <option value="LTBP1">LTBP1</option>
+                                
+                                    <option value="TGFBR2">TGFBR2</option>
+                                
+                                    <option value="ENG">ENG</option>
+                                
+                                    <option value="TGFBR3">TGFBR3</option>
+                                
+                                    <option value="LTBP4">LTBP4</option>
+                                
+                                    <option value="LTBP3">LTBP3</option>
+                                
+                                    <option value="LRRC32">LRRC32</option>
+                                
+                                    <option value="ITGAV">ITGAV</option>
+                                
+                                    <option value="SMAD3">SMAD3</option>
+                                
+                                    <option value="SMAD7">SMAD7</option>
+                                
+                                    <option value="TGFB3">TGFB3</option>
+                                
+                                    <option value="ITGB6">ITGB6</option>
+                                
+                                    <option value="THBS1">THBS1</option>
+                                
+                                    <option value="ITGB8">ITGB8</option>
+                                
+                                    <option value="SMAD2">SMAD2</option>
+                                
+                                    <option value="FGF2">FGF2</option>
+                                
+                                    <option value="BGN">BGN</option>
+                                
+                                    <option value="FMOD">FMOD</option>
+                                
+                                    <option value="AKT1">AKT1</option>
+                                
+                                    <option value="CTNNB1">CTNNB1</option>
+                                
+                                    <option value="YAP1">YAP1</option>
+                                
+                                    <option value="TNF">TNF</option>
+                                
+                                    <option value="CHUK">CHUK</option>
+                                
+                                    <option value="IKBKB">IKBKB</option>
+                                
+                                    <option value="BCL3">BCL3</option>
+                                
+                                    <option value="REL">REL</option>
+                                
+                                    <option value="RELB">RELB</option>
+                                
+                                    <option value="RELA">RELA</option>
+                                
+                                    <option value="IKBKG">IKBKG</option>
+                                
+                                    <option value="NFKB2">NFKB2</option>
+                                
+                                    <option value="NFKBIA">NFKBIA</option>
+                                
+                                    <option value="NFKBIB">NFKBIB</option>
+                                
+                                    <option value="IL1B">IL1B</option>
+                                
+                                    <option value="MAP3K8">MAP3K8</option>
+                                
+                                    <option value="NFKBIE">NFKBIE</option>
+                                
+                                    <option value="TNIP2">TNIP2</option>
+                                
+                                    <option value="IL6">IL6</option>
+                                
+                                    <option value="TLR4">TLR4</option>
+                                
+                                    <option value="RALGDS">RALGDS</option>
+                                
+                                    <option value="BRAF">BRAF</option>
+                                
+                                    <option value="SOS1">SOS1</option>
+                                
+                                    <option value="RAF1">RAF1</option>
+                                
+                                    <option value="CALML5">CALML5</option>
+                                
+                                    <option value="CALML3">CALML3</option>
+                                
+                                    <option value="CALM3">CALM3</option>
+                                
+                                    <option value="CALML6">CALML6</option>
+                                
+                                    <option value="CALML4">CALML4</option>
+                                
+                                    <option value="PIK3CA">PIK3CA</option>
+                                
+                                    <option value="RGL1">RGL1</option>
+                                
+                                    <option value="ARAF">ARAF</option>
+                                
+                                    <option value="NF1">NF1</option>
+                                
+                                    <option value="HRAS">HRAS</option>
+                                
+                                    <option value="CDKN2A">CDKN2A</option>
+                                
+                                    <option value="SHOC2">SHOC2</option>
+                                
+                                    <option value="ALK">ALK</option>
+                                
+                                    <option value="NOTCH1">NOTCH1</option>
+                                
+                                    <option value="MCL1">MCL1</option>
+                                
+                                    <option value="BCL2L11">BCL2L11</option>
+                                
+                                    <option value="BID">BID</option>
+                                
+                                    <option value="BAK1">BAK1</option>
+                                
+                                    <option value="CYCS">CYCS</option>
+                                
+                                    <option value="VDAC1">VDAC1</option>
+                                
+                                    <option value="XRCC6">XRCC6</option>
+                                
+                                    <option value="TMBIM6">TMBIM6</option>
+                                
+                                    <option value="BBC3">BBC3</option>
+                                
+                                    <option value="PRKN">PRKN</option>
+                                
+                                    <option value="PPIF">PPIF</option>
+                                
+                                    <option value="BCL2L2">BCL2L2</option>
+                                
+                                    <option value="AIFM1">AIFM1</option>
+                                
+                                    <option value="PRKACA">PRKACA</option>
+                                
+                                    <option value="PRKACG">PRKACG</option>
+                                
+                                    <option value="PRKACB">PRKACB</option>
+                                
+                                    <option value="MTOR">MTOR</option>
+                                
+                                    <option value="PHLPP1">PHLPP1</option>
+                                
+                                    <option value="CDC42">CDC42</option>
+                                
+                                    <option value="PDPK1">PDPK1</option>
+                                
+                                    <option value="HSP90AB1">HSP90AB1</option>
+                                
+                                    <option value="FOXO1">FOXO1</option>
+                                
+                                    <option value="ILK">ILK</option>
+                                
+                                    <option value="FOXO3">FOXO3</option>
+                                
+                                    <option value="TRIB3">TRIB3</option>
+                                
+                                    <option value="ARRB2">ARRB2</option>
+                                
+                                    <option value="NOS3">NOS3</option>
+                                
+                                    <option value="RPTOR">RPTOR</option>
+                                
+                                    <option value="CDKN1B">CDKN1B</option>
+                                
+                                    <option value="GSK3B">GSK3B</option>
+                                
+                                    <option value="TCL1A">TCL1A</option>
+                                
+                                    <option value="LATS2">LATS2</option>
+                                
+                                    <option value="LATS1">LATS1</option>
+                                
+                                    <option value="TEAD1">TEAD1</option>
+                                
+                                    <option value="TEAD2">TEAD2</option>
+                                
+                                    <option value="TEAD4">TEAD4</option>
+                                
+                                    <option value="TEAD3">TEAD3</option>
+                                
+                                    <option value="AMOT">AMOT</option>
+                                
+                                    <option value="TP73">TP73</option>
+                                
+                                    <option value="ERBB4">ERBB4</option>
+                                
+                                    <option value="BTRC">BTRC</option>
+                                
+                                    <option value="YWHAZ">YWHAZ</option>
+                                
+                                    <option value="TJP2">TJP2</option>
+                                
+                                    <option value="TBX5">TBX5</option>
+                                
+                                    <option value="YES1">YES1</option>
+                                
+                                    <option value="YWHAB">YWHAB</option>
+                                
+                                    <option value="PTPN14">PTPN14</option>
+                                
+                                    <option value="YWHAQ">YWHAQ</option>
+                                
+                                    <option value="TCF7">TCF7</option>
+                                
+                                    <option value="POU5F1">POU5F1</option>
+                                
+                                    <option value="HNF4A">HNF4A</option>
+                                
+                                    <option value="TCF7L2">TCF7L2</option>
+                                
+                                    <option value="TCF4">TCF4</option>
+                                
+                                    <option value="LEF1">LEF1</option>
+                                
+                                    <option value="CDH1">CDH1</option>
+                                
+                                    <option value="CDH17">CDH17</option>
+                                
+                                    <option value="APC">APC</option>
+                                
+                                    <option value="PSEN1">PSEN1</option>
+                                
+                                    <option value="CSNK1A1">CSNK1A1</option>
+                                
+                                    <option value="IQGAP1">IQGAP1</option>
+                                
+                                    <option value="AXIN1">AXIN1</option>
+                                
+                                    <option value="CDH2">CDH2</option>
+                                
+                                    <option value="CTNND1">CTNND1</option>
+                                
+                                    <option value="SKP1">SKP1</option>
+                                
+                                    <option value="DLL1">DLL1</option>
+                                
+                                    <option value="JAG2">JAG2</option>
+                                
+                                    <option value="MAML1">MAML1</option>
+                                
+                                    <option value="DLL4">DLL4</option>
+                                
+                                    <option value="MAML2">MAML2</option>
+                                
+                                    <option value="MAML3">MAML3</option>
+                                
+                                    <option value="RBPJ">RBPJ</option>
+                                
+                                    <option value="JAG1">JAG1</option>
+                                
+                                    <option value="DLL3">DLL3</option>
+                                
+                                    <option value="FBXW7">FBXW7</option>
+                                
+                                    <option value="NUMB">NUMB</option>
+                                
+                                    <option value="NUMBL">NUMBL</option>
+                                
+                                    <option value="NCSTN">NCSTN</option>
+                                
+                                    <option value="DTX1">DTX1</option>
+                                
+                                    <option value="APH1A">APH1A</option>
+                                
+                                    <option value="NRARP">NRARP</option>
+                                
+                                    <option value="LFNG">LFNG</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#0000FF", "font": {"color": "gray"}, "id": "MAPK1", "label": "MAPK1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "MAP2K1", "label": "MAP2K1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "RPS6KA1", "label": "RPS6KA1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "MAP2K2", "label": "MAP2K2", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "MKNK1", "label": "MKNK1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "PTPN7", "label": "PTPN7", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "PEA15", "label": "PEA15", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "TP53", "label": "TP53", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "JUN", "label": "JUN", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "PTPRR", "label": "PTPRR", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "DUSP6", "label": "DUSP6", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "DUSP1", "label": "DUSP1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "STAT3", "label": "STAT3", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "MAPK14", "label": "MAPK14", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "MAPK3", "label": "MAPK3", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "ELK1", "label": "ELK1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "FOS", "label": "FOS", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "ETS1", "label": "ETS1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "RPS6KA2", "label": "RPS6KA2", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "RPS6KA3", "label": "RPS6KA3", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#0000FF", "font": {"color": "gray"}, "id": "ARRB1", "label": "ARRB1", "shape": "dot", "size": 10, "title": "MAPK signaling pathway"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "KRAS", "label": "KRAS", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "SFN", "label": "SFN", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "EP300", "label": "EP300", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "HIF1A", "label": "HIF1A", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "HDAC1", "label": "HDAC1", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "HSP90AA1", "label": "HSP90AA1", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "ATM", "label": "ATM", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "MDM4", "label": "MDM4", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "CHEK2", "label": "CHEK2", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "BCL2", "label": "BCL2", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "BCL2L1", "label": "BCL2L1", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "PPP1R13L", "label": "PPP1R13L", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "DAXX", "label": "DAXX", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "SIRT1", "label": "SIRT1", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "BRCA1", "label": "BRCA1", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "CDKN1A", "label": "CDKN1A", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TP53BP2", "label": "TP53BP2", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "UBE3A", "label": "UBE3A", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "USP7", "label": "USP7", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#8A2BE2", "font": {"color": "gray"}, "id": "CREBBP", "label": "CREBBP", "shape": "dot", "size": 10, "title": "p53 signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "MDM2", "label": "MDM2", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "BAX", "label": "BAX", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "NFKB1", "label": "NFKB1", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "JAK1", "label": "JAK1", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "JAK2", "label": "JAK2", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "STAT1", "label": "STAT1", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "PIAS3", "label": "PIAS3", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "SRC", "label": "SRC", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "EGFR", "label": "EGFR", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "STAT5B", "label": "STAT5B", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "JAK3", "label": "JAK3", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "TYK2", "label": "TYK2", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "STAT5A", "label": "STAT5A", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "NANOG", "label": "NANOG", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "SOCS3", "label": "SOCS3", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "IL6R", "label": "IL6R", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#1E90FF", "font": {"color": "gray"}, "id": "CD274", "label": "CD274", "shape": "dot", "size": 10, "title": "JAK-STAT signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "TGFB1", "label": "TGFB1", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "DCN", "label": "DCN", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "TGFBR1", "label": "TGFBR1", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "LTBP1", "label": "LTBP1", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "TGFBR2", "label": "TGFBR2", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "ENG", "label": "ENG", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "TGFBR3", "label": "TGFBR3", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "LTBP4", "label": "LTBP4", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "LTBP3", "label": "LTBP3", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "LRRC32", "label": "LRRC32", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "ITGAV", "label": "ITGAV", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "SMAD3", "label": "SMAD3", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "SMAD7", "label": "SMAD7", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "TGFB3", "label": "TGFB3", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "ITGB6", "label": "ITGB6", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "THBS1", "label": "THBS1", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "ITGB8", "label": "ITGB8", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "SMAD2", "label": "SMAD2", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "FGF2", "label": "FGF2", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "BGN", "label": "BGN", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#FF0000", "font": {"color": "gray"}, "id": "FMOD", "label": "FMOD", "shape": "dot", "size": 10, "title": "TGF-beta signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "AKT1", "label": "AKT1", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "CTNNB1", "label": "CTNNB1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "YAP1", "label": "YAP1", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "TNF", "label": "TNF", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "CHUK", "label": "CHUK", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "IKBKB", "label": "IKBKB", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "BCL3", "label": "BCL3", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "REL", "label": "REL", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "RELB", "label": "RELB", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "RELA", "label": "RELA", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "IKBKG", "label": "IKBKG", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "NFKB2", "label": "NFKB2", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "NFKBIA", "label": "NFKBIA", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "NFKBIB", "label": "NFKBIB", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "IL1B", "label": "IL1B", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "MAP3K8", "label": "MAP3K8", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "NFKBIE", "label": "NFKBIE", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "TNIP2", "label": "TNIP2", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "IL6", "label": "IL6", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#00BFFF", "font": {"color": "gray"}, "id": "TLR4", "label": "TLR4", "shape": "dot", "size": 10, "title": "C-type lectin receptor signaling pathway"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "RALGDS", "label": "RALGDS", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "BRAF", "label": "BRAF", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "SOS1", "label": "SOS1", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "RAF1", "label": "RAF1", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "CALML5", "label": "CALML5", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "CALML3", "label": "CALML3", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "CALM3", "label": "CALM3", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "CALML6", "label": "CALML6", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "CALML4", "label": "CALML4", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "PIK3CA", "label": "PIK3CA", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "RGL1", "label": "RGL1", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "ARAF", "label": "ARAF", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "NF1", "label": "NF1", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "HRAS", "label": "HRAS", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "CDKN2A", "label": "CDKN2A", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "SHOC2", "label": "SHOC2", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#3CB371", "font": {"color": "gray"}, "id": "ALK", "label": "ALK", "shape": "dot", "size": 10, "title": "Glioma"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "NOTCH1", "label": "NOTCH1", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "MCL1", "label": "MCL1", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "BCL2L11", "label": "BCL2L11", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "BID", "label": "BID", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "BAK1", "label": "BAK1", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "CYCS", "label": "CYCS", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "VDAC1", "label": "VDAC1", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "XRCC6", "label": "XRCC6", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "TMBIM6", "label": "TMBIM6", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "BBC3", "label": "BBC3", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "PRKN", "label": "PRKN", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "PPIF", "label": "PPIF", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "BCL2L2", "label": "BCL2L2", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "AIFM1", "label": "AIFM1", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "PRKACA", "label": "PRKACA", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "PRKACG", "label": "PRKACG", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#8B008B", "font": {"color": "gray"}, "id": "PRKACB", "label": "PRKACB", "shape": "dot", "size": 10, "title": "Apoptosis"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "MTOR", "label": "MTOR", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "PHLPP1", "label": "PHLPP1", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "CDC42", "label": "CDC42", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "PDPK1", "label": "PDPK1", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "HSP90AB1", "label": "HSP90AB1", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "FOXO1", "label": "FOXO1", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "ILK", "label": "ILK", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "FOXO3", "label": "FOXO3", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "TRIB3", "label": "TRIB3", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "ARRB2", "label": "ARRB2", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "NOS3", "label": "NOS3", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "RPTOR", "label": "RPTOR", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "CDKN1B", "label": "CDKN1B", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "GSK3B", "label": "GSK3B", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#F4A460", "font": {"color": "gray"}, "id": "TCL1A", "label": "TCL1A", "shape": "dot", "size": 10, "title": "PI3K-Akt signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "LATS2", "label": "LATS2", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "LATS1", "label": "LATS1", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TEAD1", "label": "TEAD1", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TEAD2", "label": "TEAD2", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TEAD4", "label": "TEAD4", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TEAD3", "label": "TEAD3", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "AMOT", "label": "AMOT", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TP73", "label": "TP73", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "ERBB4", "label": "ERBB4", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "BTRC", "label": "BTRC", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "YWHAZ", "label": "YWHAZ", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TJP2", "label": "TJP2", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "TBX5", "label": "TBX5", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "YES1", "label": "YES1", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "YWHAB", "label": "YWHAB", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "PTPN14", "label": "PTPN14", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#FFD700", "font": {"color": "gray"}, "id": "YWHAQ", "label": "YWHAQ", "shape": "dot", "size": 10, "title": "Hippo signaling pathway"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "TCF7", "label": "TCF7", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "POU5F1", "label": "POU5F1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "HNF4A", "label": "HNF4A", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "TCF7L2", "label": "TCF7L2", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "TCF4", "label": "TCF4", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "LEF1", "label": "LEF1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "CDH1", "label": "CDH1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "CDH17", "label": "CDH17", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "APC", "label": "APC", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "PSEN1", "label": "PSEN1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "CSNK1A1", "label": "CSNK1A1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "IQGAP1", "label": "IQGAP1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "AXIN1", "label": "AXIN1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "CDH2", "label": "CDH2", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "CTNND1", "label": "CTNND1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#40E0D0", "font": {"color": "gray"}, "id": "SKP1", "label": "SKP1", "shape": "dot", "size": 10, "title": "Gastric cancer"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "DLL1", "label": "DLL1", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "JAG2", "label": "JAG2", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "MAML1", "label": "MAML1", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "DLL4", "label": "DLL4", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "MAML2", "label": "MAML2", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "MAML3", "label": "MAML3", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "RBPJ", "label": "RBPJ", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "JAG1", "label": "JAG1", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "DLL3", "label": "DLL3", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "FBXW7", "label": "FBXW7", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "NUMB", "label": "NUMB", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "NUMBL", "label": "NUMBL", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "NCSTN", "label": "NCSTN", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "DTX1", "label": "DTX1", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "APH1A", "label": "APH1A", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "NRARP", "label": "NRARP", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}, {"color": "#9ACD32", "font": {"color": "gray"}, "id": "LFNG", "label": "LFNG", "shape": "dot", "size": 10, "title": "Notch signaling pathway"}]);
+                  edges = new vis.DataSet([{"color": "lightgray", "from": "MAPK1", "to": "MAP2K1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "MAPK1", "to": "RPS6KA1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "MAPK1", "to": "MAP2K2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "MAPK1", "to": "MKNK1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "MAPK1", "to": "PTPN7", "width": 0.009180247936808805}, {"color": "lightgray", "from": "MAPK1", "to": "PEA15", "width": 0.009180247936808805}, {"color": "lightgray", "from": "MAPK1", "to": "TP53", "width": 0.009180247936808805}, {"color": "lightgray", "from": "MAPK1", "to": "JUN", "width": 0.009180247936808805}, {"color": "lightgray", "from": "MAPK1", "to": "PTPRR", "width": 0.008957965904440554}, {"color": "lightgray", "from": "MAPK1", "to": "DUSP6", "width": 0.008957965904440554}, {"color": "lightgray", "from": "MAPK1", "to": "DUSP1", "width": 0.008957965904440554}, {"color": "lightgray", "from": "MAPK1", "to": "STAT3", "width": 0.008957965904440554}, {"color": "lightgray", "from": "MAPK1", "to": "MAPK14", "width": 0.008846824888256426}, {"color": "lightgray", "from": "MAPK1", "to": "MAPK3", "width": 0.0087356838720723}, {"color": "lightgray", "from": "MAPK1", "to": "ELK1", "width": 0.0087356838720723}, {"color": "lightgray", "from": "MAPK1", "to": "FOS", "width": 0.00851340183970405}, {"color": "lightgray", "from": "MAPK1", "to": "ETS1", "width": 0.00851340183970405}, {"color": "lightgray", "from": "MAPK1", "to": "RPS6KA2", "width": 0.008402260823519922}, {"color": "lightgray", "from": "MAPK1", "to": "RPS6KA3", "width": 0.00817997879115167}, {"color": "lightgray", "from": "MAPK1", "to": "ARRB1", "width": 0.00817997879115167}, {"color": "lightgray", "from": "MAP2K1", "to": "KRAS", "width": 0.008846824888256426}, {"color": "lightgray", "from": "TP53", "to": "STAT3", "width": 0.0087356838720723}, {"color": "lightgray", "from": "TP53", "to": "SFN", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "EP300", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "HIF1A", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "HDAC1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "HSP90AA1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "ATM", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "MDM4", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "CHEK2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "BCL2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "BCL2L1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "PPP1R13L", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "DAXX", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "SIRT1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "BRCA1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "CDKN1A", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "TP53BP2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "UBE3A", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "USP7", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "CREBBP", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "MDM2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TP53", "to": "BAX", "width": 0.0087356838720723}, {"color": "lightgray", "from": "JUN", "to": "NFKB1", "width": 0.0087356838720723}, {"color": "lightgray", "from": "JUN", "to": "STAT3", "width": 0.008846824888256426}, {"color": "lightgray", "from": "STAT3", "to": "JAK1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "STAT3", "to": "JAK2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "STAT3", "to": "STAT1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "STAT3", "to": "PIAS3", "width": 0.009291388952992932}, {"color": "lightgray", "from": "STAT3", "to": "SRC", "width": 0.009291388952992932}, {"color": "lightgray", "from": "STAT3", "to": "EP300", "width": 0.009291388952992932}, {"color": "lightgray", "from": "STAT3", "to": "EGFR", "width": 0.009180247936808805}, {"color": "lightgray", "from": "STAT3", "to": "STAT5B", "width": 0.009180247936808805}, {"color": "lightgray", "from": "STAT3", "to": "JAK3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "STAT3", "to": "TYK2", "width": 0.00906910692062468}, {"color": "lightgray", "from": "STAT3", "to": "STAT5A", "width": 0.00906910692062468}, {"color": "lightgray", "from": "STAT3", "to": "FOS", "width": 0.008846824888256426}, {"color": "lightgray", "from": "STAT3", "to": "NANOG", "width": 0.008846824888256426}, {"color": "lightgray", "from": "STAT3", "to": "SOCS3", "width": 0.0087356838720723}, {"color": "lightgray", "from": "STAT3", "to": "HIF1A", "width": 0.0087356838720723}, {"color": "lightgray", "from": "STAT3", "to": "IL6R", "width": 0.008624542855888174}, {"color": "lightgray", "from": "STAT3", "to": "CD274", "width": 0.00851340183970405}, {"color": "lightgray", "from": "KRAS", "to": "RALGDS", "width": 0.009291388952992932}, {"color": "lightgray", "from": "KRAS", "to": "BRAF", "width": 0.009291388952992932}, {"color": "lightgray", "from": "KRAS", "to": "SOS1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "KRAS", "to": "RAF1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "KRAS", "to": "CALML5", "width": 0.009180247936808805}, {"color": "lightgray", "from": "KRAS", "to": "CALML3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "KRAS", "to": "CALM3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "KRAS", "to": "CALML6", "width": 0.009180247936808805}, {"color": "lightgray", "from": "KRAS", "to": "CALML4", "width": 0.009180247936808805}, {"color": "lightgray", "from": "KRAS", "to": "PIK3CA", "width": 0.009180247936808805}, {"color": "lightgray", "from": "KRAS", "to": "RGL1", "width": 0.00906910692062468}, {"color": "lightgray", "from": "KRAS", "to": "EGFR", "width": 0.00906910692062468}, {"color": "lightgray", "from": "KRAS", "to": "ARAF", "width": 0.008957965904440554}, {"color": "lightgray", "from": "KRAS", "to": "NF1", "width": 0.008957965904440554}, {"color": "lightgray", "from": "KRAS", "to": "HRAS", "width": 0.00851340183970405}, {"color": "lightgray", "from": "KRAS", "to": "CDKN2A", "width": 0.00851340183970405}, {"color": "lightgray", "from": "KRAS", "to": "SRC", "width": 0.008291119807335797}, {"color": "lightgray", "from": "KRAS", "to": "SHOC2", "width": 0.00817997879115167}, {"color": "lightgray", "from": "KRAS", "to": "ALK", "width": 0.00817997879115167}, {"color": "lightgray", "from": "EP300", "to": "NFKB1", "width": 0.009180247936808805}, {"color": "lightgray", "from": "EP300", "to": "CTNNB1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "HIF1A", "to": "NOTCH1", "width": 0.008624542855888174}, {"color": "lightgray", "from": "HDAC1", "to": "NFKB1", "width": 0.008957965904440554}, {"color": "lightgray", "from": "HSP90AA1", "to": "AKT1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "BCL2", "to": "BAX", "width": 0.009291388952992932}, {"color": "lightgray", "from": "BCL2L1", "to": "BAX", "width": 0.009291388952992932}, {"color": "lightgray", "from": "SIRT1", "to": "BAX", "width": 0.0029563510304977418}, {"color": "lightgray", "from": "TP53BP2", "to": "YAP1", "width": 0.007846555742599293}, {"color": "lightgray", "from": "MDM2", "to": "AKT1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "BAX", "to": "MCL1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "BAX", "to": "BCL2L11", "width": 0.009180247936808805}, {"color": "lightgray", "from": "BAX", "to": "BID", "width": 0.009180247936808805}, {"color": "lightgray", "from": "BAX", "to": "BAK1", "width": 0.008957965904440554}, {"color": "lightgray", "from": "BAX", "to": "CYCS", "width": 0.008624542855888174}, {"color": "lightgray", "from": "BAX", "to": "VDAC1", "width": 0.0075131326940469124}, {"color": "lightgray", "from": "BAX", "to": "XRCC6", "width": 0.006290581516021525}, {"color": "lightgray", "from": "BAX", "to": "TMBIM6", "width": 0.004956889321812012}, {"color": "lightgray", "from": "BAX", "to": "BBC3", "width": 0.003956620176154877}, {"color": "lightgray", "from": "BAX", "to": "PRKN", "width": 0.0027340689981294897}, {"color": "lightgray", "from": "BAX", "to": "PPIF", "width": 0.0017337998524723666}, {"color": "lightgray", "from": "BAX", "to": "BCL2L2", "width": 0.0016226588362882404}, {"color": "lightgray", "from": "BAX", "to": "AIFM1", "width": 0.0015115178201041142}, {"color": "lightgray", "from": "BAX", "to": "PRKACA", "width": 0.0009558127391834835}, {"color": "lightgray", "from": "BAX", "to": "PRKACG", "width": 0.0008446717229993574}, {"color": "lightgray", "from": "BAX", "to": "PRKACB", "width": 0.0008446717229993574}, {"color": "lightgray", "from": "NFKB1", "to": "TNF", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "CHUK", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "IKBKB", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "BCL3", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "REL", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "RELB", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "RELA", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "IKBKG", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "NFKB2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "NFKBIA", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NFKB1", "to": "NFKBIB", "width": 0.009180247936808805}, {"color": "lightgray", "from": "NFKB1", "to": "IL1B", "width": 0.008957965904440554}, {"color": "lightgray", "from": "NFKB1", "to": "MAP3K8", "width": 0.008957965904440554}, {"color": "lightgray", "from": "NFKB1", "to": "NFKBIE", "width": 0.008846824888256426}, {"color": "lightgray", "from": "NFKB1", "to": "TNIP2", "width": 0.008846824888256426}, {"color": "lightgray", "from": "NFKB1", "to": "IL6", "width": 0.0087356838720723}, {"color": "lightgray", "from": "NFKB1", "to": "TLR4", "width": 0.008624542855888174}, {"color": "lightgray", "from": "SRC", "to": "CTNNB1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TGFB1", "to": "DCN", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TGFB1", "to": "TGFBR1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TGFB1", "to": "LTBP1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TGFB1", "to": "TGFBR2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "TGFB1", "to": "ENG", "width": 0.009180247936808805}, {"color": "lightgray", "from": "TGFB1", "to": "TGFBR3", "width": 0.00906910692062468}, {"color": "lightgray", "from": "TGFB1", "to": "LTBP4", "width": 0.00906910692062468}, {"color": "lightgray", "from": "TGFB1", "to": "LTBP3", "width": 0.008957965904440554}, {"color": "lightgray", "from": "TGFB1", "to": "LRRC32", "width": 0.008846824888256426}, {"color": "lightgray", "from": "TGFB1", "to": "ITGAV", "width": 0.0087356838720723}, {"color": "lightgray", "from": "TGFB1", "to": "SMAD3", "width": 0.008291119807335797}, {"color": "lightgray", "from": "TGFB1", "to": "SMAD7", "width": 0.00817997879115167}, {"color": "lightgray", "from": "TGFB1", "to": "TGFB3", "width": 0.008068837774967544}, {"color": "lightgray", "from": "TGFB1", "to": "ITGB6", "width": 0.007846555742599293}, {"color": "lightgray", "from": "TGFB1", "to": "THBS1", "width": 0.007735414726415165}, {"color": "lightgray", "from": "TGFB1", "to": "ITGB8", "width": 0.0075131326940469124}, {"color": "lightgray", "from": "TGFB1", "to": "SMAD2", "width": 0.0075131326940469124}, {"color": "lightgray", "from": "TGFB1", "to": "FGF2", "width": 0.007401991677862787}, {"color": "lightgray", "from": "TGFB1", "to": "BGN", "width": 0.006957427613126282}, {"color": "lightgray", "from": "TGFB1", "to": "FMOD", "width": 0.00673514558075803}, {"color": "lightgray", "from": "SMAD3", "to": "AKT1", "width": 0.008957965904440554}, {"color": "lightgray", "from": "SMAD3", "to": "CTNNB1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "SMAD7", "to": "YAP1", "width": 0.009180247936808805}, {"color": "lightgray", "from": "AKT1", "to": "CHUK", "width": 0.008957965904440554}, {"color": "lightgray", "from": "AKT1", "to": "PIK3CA", "width": 0.009180247936808805}, {"color": "lightgray", "from": "AKT1", "to": "MTOR", "width": 0.009291388952992932}, {"color": "lightgray", "from": "AKT1", "to": "PHLPP1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "AKT1", "to": "CDC42", "width": 0.009291388952992932}, {"color": "lightgray", "from": "AKT1", "to": "PDPK1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "AKT1", "to": "HSP90AB1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "AKT1", "to": "FOXO1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "AKT1", "to": "ILK", "width": 0.009180247936808805}, {"color": "lightgray", "from": "AKT1", "to": "FOXO3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "AKT1", "to": "TRIB3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "AKT1", "to": "ARRB2", "width": 0.00906910692062468}, {"color": "lightgray", "from": "AKT1", "to": "NOS3", "width": 0.00906910692062468}, {"color": "lightgray", "from": "AKT1", "to": "RPTOR", "width": 0.008957965904440554}, {"color": "lightgray", "from": "AKT1", "to": "CDKN1B", "width": 0.008957965904440554}, {"color": "lightgray", "from": "AKT1", "to": "GSK3B", "width": 0.008957965904440554}, {"color": "lightgray", "from": "AKT1", "to": "TCL1A", "width": 0.008846824888256426}, {"color": "lightgray", "from": "CTNNB1", "to": "GSK3B", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "YAP1", "width": 0.00906910692062468}, {"color": "lightgray", "from": "CTNNB1", "to": "TCF7", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "POU5F1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "HNF4A", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "TCF7L2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "TCF4", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "LEF1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "CDH1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "CDH17", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "APC", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "PSEN1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "CSNK1A1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "IQGAP1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "AXIN1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "CDH2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "CTNND1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "SKP1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "CTNNB1", "to": "NOTCH1", "width": 0.00673514558075803}, {"color": "lightgray", "from": "YAP1", "to": "LATS2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "YAP1", "to": "LATS1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "YAP1", "to": "TEAD1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "YAP1", "to": "TEAD2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "YAP1", "to": "TEAD4", "width": 0.009291388952992932}, {"color": "lightgray", "from": "YAP1", "to": "TEAD3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "YAP1", "to": "AMOT", "width": 0.009180247936808805}, {"color": "lightgray", "from": "YAP1", "to": "TP73", "width": 0.008846824888256426}, {"color": "lightgray", "from": "YAP1", "to": "ERBB4", "width": 0.0087356838720723}, {"color": "lightgray", "from": "YAP1", "to": "BTRC", "width": 0.00851340183970405}, {"color": "lightgray", "from": "YAP1", "to": "YWHAZ", "width": 0.008402260823519922}, {"color": "lightgray", "from": "YAP1", "to": "TJP2", "width": 0.008291119807335797}, {"color": "lightgray", "from": "YAP1", "to": "TBX5", "width": 0.008068837774967544}, {"color": "lightgray", "from": "YAP1", "to": "YES1", "width": 0.007957696758783417}, {"color": "lightgray", "from": "YAP1", "to": "YWHAB", "width": 0.0075131326940469124}, {"color": "lightgray", "from": "YAP1", "to": "PTPN14", "width": 0.007401991677862787}, {"color": "lightgray", "from": "YAP1", "to": "YWHAQ", "width": 0.007401991677862787}, {"color": "lightgray", "from": "NOTCH1", "to": "PSEN1", "width": 0.009180247936808805}, {"color": "lightgray", "from": "NOTCH1", "to": "DLL1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "JAG2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "MAML1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "DLL4", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "MAML2", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "MAML3", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "RBPJ", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "JAG1", "width": 0.009291388952992932}, {"color": "lightgray", "from": "NOTCH1", "to": "DLL3", "width": 0.009180247936808805}, {"color": "lightgray", "from": "NOTCH1", "to": "FBXW7", "width": 0.008846824888256426}, {"color": "lightgray", "from": "NOTCH1", "to": "NUMB", "width": 0.00851340183970405}, {"color": "lightgray", "from": "NOTCH1", "to": "NUMBL", "width": 0.00817997879115167}, {"color": "lightgray", "from": "NOTCH1", "to": "NCSTN", "width": 0.007846555742599293}, {"color": "lightgray", "from": "NOTCH1", "to": "DTX1", "width": 0.007624273710231039}, {"color": "lightgray", "from": "NOTCH1", "to": "APH1A", "width": 0.007068568629310408}, {"color": "lightgray", "from": "NOTCH1", "to": "NRARP", "width": 0.006624004564573904}, {"color": "lightgray", "from": "NOTCH1", "to": "LFNG", "width": 0.006401722532205651}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"nodes": {"font": {"size": 18, "strokeWidth": 3}, "shadow": {"enabled": true}, "size": null}, "edges": {"color": {"inherit": true}, "selfReferenceSize": null, "selfReference": {"angle": 0.7853981633974483}, "smooth": {"forceDirection": "none", "roundness": 0.4}}, "interaction": {"hover": true, "keyboard": {"enabled": true}, "multiselect": true, "navigationButtons": true}, "manipulation": {"enabled": true, "initiallyActive": true}, "physics": {"enabled": true, "barnesHut": {"gravitationalConstant": -8000, "centralGravity": 0.3, "springLength": 100, "springConstant": 0.02, "damping": 0.09, "avoidOverlap": 0.1}, "maxVelocity": 50, "minVelocity": 0.1, "solver": "barnesHut", "timestep": 0.35, "stabilization": {"enabled": true, "iterations": 1000, "updateInterval": 25}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+						  // Disable the physics after stabilization is done.
+						  network.setOptions({ physics: false });
+						  updateCheckboxState();
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    <label id="physicsToggle">
+                <span class="toggleText">Enable Physics</span>
+                <div class="switch">
+                    <input type="checkbox" id="togglePhysics">
+                    <span class="slider round"></span>
+                </div>
+            </label>
+
+            <script type="text/javascript">
+                    var hideButton; // Define hideButton at a higher scope
+
+                    // Function to create and style the hide button
+                    function createHideButton() {
+                        // Check if the button already exists to avoid creating multiple buttons
+                        if (!hideButton) {
+                            hideButton = document.createElement('button');
+                            hideButton.textContent = 'Hide Unselected Nodes';
+                            hideButton.className = 'btn btn-primary btn-block'; // Add your existing button classes here
+                            hideButton.style.position = 'absolute';
+                            hideButton.style.top = '220px';
+                            hideButton.style.left = '20px';
+                            hideButton.style.zIndex = '999';
+                            document.body.appendChild(hideButton);
+
+                            hideButton.onclick = function () {
+                                var selectedNodeIds = network.getSelectedNodes();
+                                var nodesToShow = new Set(selectedNodeIds);
+
+                                // Get connected nodes for each selected node and add to the set
+                                selectedNodeIds.forEach(function (nodeId) {
+                                    var connectedNodes = network.getConnectedNodes(nodeId);
+                                    connectedNodes.forEach(function (connectedNodeId) {
+                                        nodesToShow.add(connectedNodeId);
+                                    });
+                                });
+
+                                // Update node visibility
+                                nodes.forEach(function (node) {
+                                    node.hidden = !nodesToShow.has(node.id);
+                                });
+
+                                // Refresh the network to apply changes
+                                network.setData({nodes: nodes, edges: edges});
+                                network.setOptions({physics: {enabled: true}});
+                                updateCheckboxState();
+
+                                // Remove the button after use
+                                if (document.body.contains(hideButton)) {
+                                    document.body.removeChild(hideButton);
+                                    hideButton = null; // Reset the hideButton variable
+                                }
+                            };
+                        }
+                    }
+
+                    var hiddenCount = 0;
+
+                    // Function to reset visibility of all nodes
+                    function resetVisibility() {
+                        hiddenCount = 0;
+                        nodes.forEach(function (node) {
+                            if (node.hidden) {
+                                hiddenCount++;
+                            }
+                            node.hidden = false; // Show all nodes
+                        });
+
+                        // Refresh the network to apply changes, if any
+                        if (hiddenCount > 0) {
+                            network.setData({nodes: nodes, edges: edges});
+                            network.on("stabilizationProgress", function(params) {
+                                var loadingBar = document.getElementById('loadingBar');
+                                if (loadingBar) {
+                                    loadingBar.removeAttribute("style");
+                                    var maxWidth = 496;
+                                    var minWidth = 20;
+                                    var widthFactor = params.iterations/params.total;
+                                    var width = Math.max(minWidth,maxWidth * widthFactor);
+                                    document.getElementById('bar').style.width = width + 'px';
+                                    document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                                }
+                            });
+                            network.once("stabilizationIterationsDone", function() {
+                                // Disable the physics after stabilization is done.
+                                network.setOptions({ physics: false });
+                                updateCheckboxState();
+                                var loadingBar = document.getElementById('loadingBar');
+                                if (loadingBar) {
+                                    document.getElementById('text').innerHTML = '100%';
+                                    document.getElementById('bar').style.width = '496px';
+                                    loadingBar.style.opacity = 0;
+                                    // really clean the dom element
+                                    setTimeout(function () {loadingBar.style.display = 'none';}, 500);
+                                }
+                            });
+                        }
+
+                        // Remove the neighbourhood highlighting
+                        neighbourhoodHighlight({nodes: []});
+
+                        // Remove the button if it exists
+                        if (document.body.contains(hideButton)) {
+                            document.body.removeChild(hideButton);
+                            hideButton = null; // Reset the hideButton variable
+                        }
+                    }
+
+                    // Event listener to show button when a node is clicked
+                    network.on("click", function (params) {
+                        if (params.nodes.length === 0) {
+                            resetVisibility();
+                            if (network.physics.options.enabled || hiddenCount > 0) {
+                                network.setOptions({physics: {enabled: true}});
+                                updateCheckboxState();
+                            }
+                        }
+                    });
+
+                    network.on("selectNode", function (params) {
+                        createHideButton();
+                    });
+
+                    // Hide the loading bar once the network is stabilized
+                    network.on("stabilizationIterationsDone", function () {
+                        var loadingBar = document.getElementById('loadingBar');
+                        if (loadingBar) {
+                            loadingBar.style.display = 'none';
+                        }
+                    });
+
+                    // Additional event listeners for loading completion
+                    network.once("afterDrawing", function () {
+                        var loadingBar = document.getElementById('loadingBar');
+                        if (loadingBar) {
+                            loadingBar.style.display = 'none';
+                        }
+                    });
+
+                    // Triggering the initial layout
+                    network.once('stabilized', function () {
+                        network.fit();
+                    });
+
+                    // Function to update the checkbox state based on network physics enabled status
+                    function updateCheckboxState() {
+                        var checkbox = document.getElementById('togglePhysics');
+                        checkbox.checked = network.physics.options.enabled;
+                    }
+
+                    // Initialize checkbox state
+                    updateCheckboxState();
+
+                    // Add event listener for the physics toggle switch
+                    document.getElementById('togglePhysics').addEventListener('change', function () {
+                        var physicsEnabled = this.checked;
+                        network.setOptions({physics: {enabled: physicsEnabled}});
+                    });
+            </script></body>
+</html>

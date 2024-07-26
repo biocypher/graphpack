@@ -1,0 +1,8 @@
+              "physics": {
+                "forceAtlas2Based": {
+                  "springLength": 100
+                },
+                "minVelocity": 0.75,
+                "solver": "forceAtlas2Based"
+              }
+            }

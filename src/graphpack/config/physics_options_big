@@ -1,0 +1,21 @@
+              "physics": {
+                "enabled": true,
+                "barnesHut": {
+                  "gravitationalConstant": -8000,
+                  "centralGravity": 0.3,
+                  "springLength": 100,
+                  "springConstant": 0.02,
+                  "damping": 0.09,
+                  "avoidOverlap": 0.1
+                },
+                "maxVelocity": 50,
+                "minVelocity": 0.1,
+                "solver": "barnesHut",
+                "timestep": 0.35,
+                "stabilization": {
+                  "enabled": true,
+                  "iterations": 1000,
+                  "updateInterval": 25
+                }
+              }
+        }

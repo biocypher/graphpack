@@ -1,0 +1,148 @@
+<label id="physicsToggle">
+                <span class="toggleText">Enable Physics</span>
+                <div class="switch">
+                    <input type="checkbox" id="togglePhysics">
+                    <span class="slider round"></span>
+                </div>
+            </label>
+
+            <script type="text/javascript">
+                    var hideButton; // Define hideButton at a higher scope
+
+                    // Function to create and style the hide button
+                    function createHideButton() {
+                        // Check if the button already exists to avoid creating multiple buttons
+                        if (!hideButton) {
+                            hideButton = document.createElement('button');
+                            hideButton.textContent = 'Hide Unselected Nodes';
+                            hideButton.className = 'btn btn-primary btn-block'; // Add your existing button classes here
+                            hideButton.style.position = 'absolute';
+                            hideButton.style.top = '220px';
+                            hideButton.style.left = '20px';
+                            hideButton.style.zIndex = '999';
+                            document.body.appendChild(hideButton);
+
+                            hideButton.onclick = function () {
+                                var selectedNodeIds = network.getSelectedNodes();
+                                var nodesToShow = new Set(selectedNodeIds);
+
+                                // Get connected nodes for each selected node and add to the set
+                                selectedNodeIds.forEach(function (nodeId) {
+                                    var connectedNodes = network.getConnectedNodes(nodeId);
+                                    connectedNodes.forEach(function (connectedNodeId) {
+                                        nodesToShow.add(connectedNodeId);
+                                    });
+                                });
+
+                                // Update node visibility
+                                nodes.forEach(function (node) {
+                                    node.hidden = !nodesToShow.has(node.id);
+                                });
+
+                                // Refresh the network to apply changes
+                                network.setData({nodes: nodes, edges: edges});
+                                network.setOptions({physics: {enabled: true}});
+                                updateCheckboxState();
+
+                                // Remove the button after use
+                                if (document.body.contains(hideButton)) {
+                                    document.body.removeChild(hideButton);
+                                    hideButton = null; // Reset the hideButton variable
+                                }
+                            };
+                        }
+                    }
+
+                    var hiddenCount = 0;
+
+                    // Function to reset visibility of all nodes
+                    function resetVisibility() {
+                        hiddenCount = 0;
+                        nodes.forEach(function (node) {
+                            if (node.hidden) {
+                                hiddenCount++;
+                            }
+                            node.hidden = false; // Show all nodes
+                        });
+
+                        // Refresh the network to apply changes, if any
+                        if (hiddenCount > 0) {
+                            network.setData({nodes: nodes, edges: edges});
+                            network.on("stabilizationProgress", function(params) {
+                                  document.getElementById('loadingBar').removeAttribute("style");
+                                  var maxWidth = 496;
+                                  var minWidth = 20;
+                                  var widthFactor = params.iterations/params.total;
+                                  var width = Math.max(minWidth,maxWidth * widthFactor);
+                                  document.getElementById('bar').style.width = width + 'px';
+                                  document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                            });
+                            network.once("stabilizationIterationsDone", function() {
+                                  // Disable the physics after stabilization is done.
+                                  network.setOptions({ physics: false });
+                                  updateCheckboxState();
+                                  document.getElementById('text').innerHTML = '100%';
+                                  document.getElementById('bar').style.width = '496px';
+                                  document.getElementById('loadingBar').style.opacity = 0;
+                                  // really clean the dom element
+                                  setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                            });
+                        }
+
+                        // Remove the neighbourhood highlighting
+                        neighbourhoodHighlight({nodes: []});
+
+                        // Remove the button if it exists
+                        if (document.body.contains(hideButton)) {
+                            document.body.removeChild(hideButton);
+                            hideButton = null; // Reset the hideButton variable
+                        }
+                    }
+
+                    // Event listener to show button when a node is clicked
+                    network.on("click", function (params) {
+                        if (params.nodes.length === 0) {
+                            resetVisibility();
+                            if (network.physics.options.enabled || hiddenCount > 0) {
+                                network.setOptions({physics: {enabled: true}});
+                                updateCheckboxState();
+                            }
+                        }
+                    });
+
+                    network.on("selectNode", function (params) {
+                        createHideButton();
+                    });
+
+                    // Hide the loading bar once the network is stabilized
+                    network.on("stabilizationIterationsDone", function () {
+                        var loadingBar = document.getElementById('loadingBar');
+                        loadingBar.style.display = 'none';
+                    });
+
+                    // Additional event listeners for loading completion
+                    network.once("afterDrawing", function () {
+                        var loadingBar = document.getElementById('loadingBar');
+                        loadingBar.style.display = 'none';
+                    });
+
+                    // Triggering the initial layout
+                    network.once('stabilized', function () {
+                        network.fit();
+                    });
+
+                    // Function to update the checkbox state based on network physics enabled status
+                    function updateCheckboxState() {
+                        var checkbox = document.getElementById('togglePhysics');
+                        checkbox.checked = network.physics.options.enabled;
+                    }
+
+                    // Initialize checkbox state
+                    updateCheckboxState();
+
+                    // Add event listener for the physics toggle switch
+                    document.getElementById('togglePhysics').addEventListener('change', function () {
+                        var physicsEnabled = this.checked;
+                        network.setOptions({physics: {enabled: physicsEnabled}});
+                    });
+            </script>
