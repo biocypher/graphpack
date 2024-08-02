@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "graphpack"
+version = "0.1.2"
+description = "A Python tool to perform graph compression and visualization"
+authors = ["Bottazzi Daniele <daniele.bottazzi@mail.polimi.it>"]
+license = "MIT"
+readme = "README.md"
+
+packages = [
+    { include = "graphpack", from = "src" },
+    { include = "graphpack/demo", from = "src" },
+]
+
+include = [
+    "src/graphpack/config/*",
+    "src/graphpack/../../data/input/*.txt"
+]
+
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+matplotlib = "~3.6.3"
+networkx = "~2.8.8"
+numpy = "~1.26.2"
+scipy = "1.11.4"
+pandas = "~2.2.1"
+gseapy = "~1.1.0"
+gensim = "~4.3.2"
+scikit-learn = "~1.4.1.post1"
+msgpack = "~1.0.7"
+tqdm = "~4.66.1"
+python-louvain = "~0.16"
+node2vec = "~0.4.6"
+requests = "~2.31.0"
+pyvis = "~0.3.1"
+plotly = "~5.22.0"
+
+[tool.poetry.dev-dependencies]
+# Add development dependencies here (e.g., testing frameworks)
+
+[tool.poetry.scripts]
+graphpack = "graphpack.compression:main"
+gp-demo = "graphpack.demo.demo:main"
+gp-sankey = "graphpack.demo.sankey:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
